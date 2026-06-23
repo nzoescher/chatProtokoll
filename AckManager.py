@@ -1,6 +1,6 @@
 import time
 
-from Packet import Packet
+from packet_full.Packet import Packet
 import threading
 from Serializer import Serializer
 from SocketStarter import SocketStarter
@@ -26,7 +26,7 @@ class AckManager:
         packet_number = packet.header.packet_number
 
         AckManager.ackStorage[(message_id, packet_number)] = packet
-        logging.debug(f"Warte auf ACK: Nachricht {message_id}, Chunk {packet_number}")
+        logging.getLogger("ack").debug(f"Warte auf ACK: Nachricht {message_id}, Chunk {packet_number}")
         threading.Thread(target=AckManager.checkIfAckWasReceived, args=(message_id, packet_number, socket_starter)).start()
 
     @staticmethod
@@ -42,7 +42,7 @@ class AckManager:
         #Doppelte ACKS?
         if (message_id,packet_number) in AckManager.ackStorage:
             del AckManager.ackStorage[(message_id, packet_number)]
-            logging.debug(f"ACK bestätigt: Nachricht {message_id}, Chunk {packet_number}")
+            logging.getLogger("ack").debug(f"ACK bestätigt: Nachricht {message_id}, Chunk {packet_number}")
 
     @staticmethod
     def checkIfAckWasReceived(message_id: int, packet_number: int, socket_starter: SocketStarter) -> None:
@@ -61,7 +61,7 @@ class AckManager:
             if paket is None:
                 break
 
-            logging.warning(f"Kein ACK für Nachricht {message_id}, Chunk {packet_number} — erneutes Senden")
+            logging.getLogger("ack").debug(f"Kein ACK für Nachricht {message_id}, Chunk {packet_number} — erneutes Senden")
 
             if paket.header.packet_type == 0x02:
                 packed = Serializer.packFile(paket)
@@ -70,4 +70,4 @@ class AckManager:
 
             socket_starter.send_forward(packed)
         else:
-            logging.error(f"Nachricht {message_id}, Chunk {packet_number} nach 10s aufgegeben")
+            logging.getLogger("ack").debug(f"Nachricht {message_id}, Chunk {packet_number} nach 10s aufgegeben")

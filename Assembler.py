@@ -1,4 +1,5 @@
-import Packet
+from packet_full.Packet import Packet
+import logging
 
 class Assembler:
     """
@@ -71,10 +72,10 @@ class Assembler:
             Assembler.storage[packet.header.message_id] = {}
 
         Assembler.storage[packet.header.message_id][packet.header.packet_number] = packet
-        print(f"Storage size: {len(Assembler.storage[packet.header.message_id])}, packet_count: {packet.header.packet_count}")
+        logging.getLogger("ack").debug(f"Storage size: {len(Assembler.storage[packet.header.message_id])}, packet_count: {packet.header.packet_count}")
+        logging.getLogger("ack").debug(f"Chunk {packet.header.packet_number} gespeichert, Storage keys: {list(Assembler.storage[packet.header.message_id].keys())[:5]}")
 
         if len(Assembler.storage[packet.header.message_id]) == packet.header.packet_count:
-            print("fetig")
             fertigeDatei : bytes = b""
             dateiname, _ = Assembler.storage[packet.header.message_id][0].message
 
@@ -83,6 +84,7 @@ class Assembler:
                 fertigeDatei += daten
 
             del Assembler.storage[packet.header.message_id]
+            logging.getLogger("ack").info(f"Datei '{dateiname}' vollständig assembliert ({len(fertigeDatei)} Bytes)")
             return (dateiname, fertigeDatei)
 
         return None
@@ -110,6 +112,7 @@ class Assembler:
             packets[index] = (None, chunk)
             index += 1
 
+        logging.getLogger("ack").debug(f"Datei '{file_name}' aufgeteilt in {len(packets)} Chunks ({length} Bytes)")
         return packets
 
 

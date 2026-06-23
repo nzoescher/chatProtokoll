@@ -1,12 +1,12 @@
 from AckManager import AckManager
-from Header import Header
-from Packet import Packet
-import socket
+from packet_full.Header import Header
+from packet_full.Packet import Packet
 from RoutingTabelle import RoutingTabelle
 from Serializer import Serializer
 from Assembler import Assembler
 from ChatWindow import ChatWindow
 import logging
+import time
 
 
 class MessageHandler:
@@ -21,10 +21,11 @@ class MessageHandler:
     MSG = 0x03
     ACK = 0x04
     BYE = 0x7F
+    sourceIP = "192.168.178.20"
 
     def __init__(self):
         self.socket_starter = None
-        self.chat_window = ChatWindow()
+        self.chat_window = ChatWindow("Empfangene Nachrichten")
 
     def handle_inc_messages(self, packet: Packet) -> None:
         """
@@ -72,7 +73,7 @@ class MessageHandler:
         username = routingTabelle.eigeneTabelle.get(packet.header.source_ip)
 
         if text is not None:
-            self.chat_window.show(f"{username}: {text}")
+            self.chat_window.show(f"Von {username}: {text}")
 
 
     def handleFILE(self, packet) -> None:
@@ -109,7 +110,7 @@ class MessageHandler:
         """
         routingTabelle = RoutingTabelle.getInstance()
         routingTabelle.update(packet.header.source_ip, packet.message)
-        logging.info(f"Routing-Update empfangen von {packet.header.source_ip} mit {len(packet.message)} Einträgen")
+        logging.getLogger("routing").debug(f"Routing-Update empfangen von {packet.header.source_ip} mit {len(packet.message)} Einträgen")
 
     def handleBYE(self, packet: Packet) -> None:
         """
@@ -172,7 +173,7 @@ class MessageHandler:
         :return:True, wenn paket an mich gerichtet ist
 
         """
-        result : bool = packet.header.dest_ip == socket.gethostbyname(socket.gethostname())
+        result : bool = packet.header.dest_ip == self.sourceIP
         logging.debug(f"Ziel-IP {packet.header.dest_ip} stimmt {'überein' if result else 'nicht überein'} mit eigener IP")
         return result
 
@@ -192,13 +193,16 @@ class MessageHandler:
         :param dest_ip: Die IP-Adress wohin das Paket soll
         """
         messages: dict = Assembler.splitFile(file_name=file_name, datei_bytes=datei_bytes)
+
+        start = time.time()
+
         for message in messages.keys():
             antwort_packet = Packet(
                 header=Header(
                     packet_type=0x02,
                     ttl=16,
                     message_id=MessageHandler.message_id_counter,
-                    source_ip=socket.gethostbyname(socket.gethostname()),
+                    source_ip=self.sourceIP,
                     dest_ip=dest_ip,
                     payloadLength=0,
                     packet_number=message,
@@ -213,8 +217,14 @@ class MessageHandler:
             self.socket_starter.send_chat(packed_message)
             AckManager.addWaitingForAck(antwort_packet,self.socket_starter)
 
-        MessageHandler.message_id_counter += 1
+        end = time.time()
 
+        dauer = end - start
+        bits = len(datei_bytes) * 8
+        mbit_pro_sek = (bits / dauer) / 1_000_000
+        print(f"Übertragungsrate: {mbit_pro_sek:.2f} Mbit/s")
+
+        MessageHandler.message_id_counter += 1
         logging.info(f"Datei '{file_name}' wird gesendet an {dest_ip} ({len(messages)} Chunks)")
 
     def sendAck(self, dest_ip: str):
@@ -229,7 +239,7 @@ class MessageHandler:
                 packet_type=0x04,
                 ttl=16,
                 message_id=MessageHandler.message_id_counter,
-                source_ip=socket.gethostbyname(socket.gethostname()),
+                source_ip=self.sourceIP,
                 dest_ip=dest_ip,
                 payloadLength=0,
                 packet_number=0,
@@ -253,7 +263,7 @@ class MessageHandler:
                 packet_type=0x01,
                 ttl=16,
                 message_id=MessageHandler.message_id_counter,
-                source_ip=socket.gethostbyname(socket.gethostname()),
+                source_ip= self.sourceIP,
                 dest_ip=dest_ip,
                 payloadLength=len(RoutingTabelle.getInstance().eigeneTabelle) * 37,
                 packet_number=0,
@@ -265,7 +275,8 @@ class MessageHandler:
         packed_message = Serializer.pack_routingtable(antwort_packet)
         self.socket_starter.send_routing(packed_message)
 
-        logging.info(f"Routing-Tabelle gesendet an {dest_ip} mit {len(RoutingTabelle.getInstance().eigeneTabelle)} Einträgen")
+
+        logging.getLogger("routing").debug(f"Routing-Tabelle gesendet an {dest_ip} mit {len(RoutingTabelle.getInstance().eigeneTabelle)} Einträgen")
 
     def sendMessage(self, text: str, dest_ip: str):
         """
@@ -286,7 +297,7 @@ class MessageHandler:
                     packet_type=0x03,
                     ttl=16,
                     message_id=MessageHandler.message_id_counter,
-                    source_ip=socket.gethostbyname(socket.gethostname()),
+                    source_ip= self.sourceIP,
                     dest_ip=dest_ip,
                     payloadLength=len(messages[message].encode()),
                     packet_number=message,
@@ -300,7 +311,12 @@ class MessageHandler:
             AckManager.addWaitingForAck(antwort_packet,self.socket_starter)
 
         MessageHandler.message_id_counter += 1
-        logging.info(f"Nachricht gesendet an {dest_ip} ({len(messages)} Chunks)")
+        print("Hallo")
+        if text is not None:
+            eintrag = RoutingTabelle.getInstance().eigeneTabelle.get(dest_ip)
+            username = eintrag.id if eintrag else dest_ip
+            self.chat_window.show(f"Nachricht gesendet {username}, {dest_ip}: {text}")
+
 
     def sendBye(self )->None:
         """
@@ -317,7 +333,7 @@ class MessageHandler:
                     packet_type=0x7F,
                     ttl=16,
                     message_id=MessageHandler.message_id_counter,
-                    source_ip=socket.gethostbyname(socket.gethostname()),
+                    source_ip= self.sourceIP,
                     dest_ip=neighbor,
                     payloadLength=0,
                     packet_number=0,

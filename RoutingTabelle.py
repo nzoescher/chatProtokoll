@@ -1,17 +1,19 @@
 import time
 from RoutingEintrag import RoutingEintrag
-import socket
+import logging
 
 class RoutingTabelle:
-    """Verwaltet die lokale Routing-Tabelle des Knotens."""
+    """
+    Verwaltet die lokale Routing-Tabelle des Knotens.
+    """
 
     _instanz = None
 
     def __init__(self):
         self.baseDaten = RoutingEintrag(
             identität="Headmaster",
-            ip=socket.gethostbyname(socket.gethostname()),
-            next_hop=socket.gethostbyname(socket.gethostname()),
+            ip= "192.168.178.20",
+            next_hop= "192.168.178.20",
             hop=0,
             last_seen=int(time.time()),
         )
@@ -56,6 +58,7 @@ class RoutingTabelle:
                     hop=nachbar_eintrag.hop + 1,
                     last_seen=int(time.time())
                 )
+                logging.getLogger("routing").debug(f"Neuer Eintrag: {nachbar_eintrag.ip} ({nachbar_eintrag.id}) via {von_nachbar_ip} mit {nachbar_eintrag.hop + 1} Hops")
 
             ## Bekannte Route — prüfen, ob neuer Weg kürzer ist
             else:
@@ -63,6 +66,7 @@ class RoutingTabelle:
                     self.eigeneTabelle[nachbar_eintrag.ip].hop = nachbar_eintrag.hop + 1
                     self.eigeneTabelle[nachbar_eintrag.ip].next_hop = von_nachbar_ip
                     self.eigeneTabelle[nachbar_eintrag.ip].last_seen = int(time.time())
+                    logging.getLogger("routing").debug(f"Route aktualisiert: {nachbar_eintrag.ip} via {von_nachbar_ip} mit {nachbar_eintrag.hop + 1} Hops")
 
             self.check_timeouts()
 
@@ -75,6 +79,7 @@ class RoutingTabelle:
             if self.is_timeouted(self.eigeneTabelle[ip].last_seen):
                 self.isNextHop(self.eigeneTabelle[ip])
                 self.delete(ip)
+                logging.getLogger("routing").debug(f"Knoten {ip} wurde wegen Inaktivität gelöscht")
 
     def is_timeouted(self, letzte_aktualisierung: int):
         """
@@ -94,7 +99,8 @@ class RoutingTabelle:
        :param: eintrag: Der zu löschende Eintrag
        """
 
-        del self.eigeneTabelle[eintrag]
+        if eintrag in self.eigeneTabelle:
+            del self.eigeneTabelle[eintrag]
 
     def isNextHop(self, eintrag: RoutingEintrag):
         """
@@ -105,6 +111,7 @@ class RoutingTabelle:
         for ip in list(self.eigeneTabelle.keys()):
             if eintrag.ip == self.eigeneTabelle[ip].next_hop:
                 self.delete(ip)
+                logging.getLogger("routing").debug(f"Knoten mit IP:{ip} wurde gelöscht, da über inaktiven Knoten ging")
 
     def getNeighbors(self) -> list[str]:
         """
@@ -125,4 +132,17 @@ class RoutingTabelle:
             if eintrag.hop == 0:
                 return eintrag.ip
 
+
+    def match_username_to_ip(self, username: str)-> str | None:
+        """
+        Sucht für den usernamen die passende IP raus
+
+        :param username: Der Username zu dem die IP rausgesucht werden soll
+
+        :return: Die passende IP oder None
+        """
+        for eintrag in self.eigeneTabelle:
+            if self.eigeneTabelle[eintrag].id == username:
+                return self.eigeneTabelle[eintrag].ip
+        return None
 

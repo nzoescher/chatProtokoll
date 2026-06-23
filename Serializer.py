@@ -1,8 +1,8 @@
 import socket
 import struct
 import time
-from Packet import Packet
-from Header import Header
+from packet_full.Packet import Packet
+from packet_full.Header import Header
 from RoutingEintrag import RoutingEintrag
 
 
@@ -17,7 +17,7 @@ class Serializer:
     TABELLE_PAYLOAD_FORMAT = "!4sBB"
 
     @staticmethod
-    def _unpack_header(header)-> Header:
+    def _unpack_header(header: bytes)-> Header:
         """
         Hilfsmethode, die den Header extrahiert
 
@@ -114,8 +114,8 @@ class Serializer:
         header_bytes = Serializer._pack_header(packet)
 
         kompletteMessage = b""
-        liste = packet.message
-        for eintrag in liste.values():
+        eintrag_map: dict = packet.message
+        for eintrag in eintrag_map.values():
             ip =socket.inet_aton(eintrag.ip)
             name_bytes = eintrag.id.encode('utf-8')
 
@@ -145,17 +145,21 @@ class Serializer:
 
         #Alles nach der Header Size also ab 33
         payload_bytes = packed_bytes[Serializer.HEADER_SIZE:]
+
         if len(payload_bytes) == 0:
             return Packet(header_obj, {})
 
         #dict
         tabelle = {}
 
+        #Index die festen Bytes plus variable Namenlaenge
         i = 0
         while i < len(payload_bytes):
+
+            #Prüfe, ob ich noch mind. 6 bytes übrig habe
             if len(payload_bytes) - i < 6:
                 break
-
+            #Entpacken der Infos
             ip, hop, nameLen = struct.unpack(Serializer.TABELLE_PAYLOAD_FORMAT, payload_bytes[i:i+6])
             name = payload_bytes[i+6:i+6+nameLen].decode('utf-8')
             i += 6 + nameLen
