@@ -144,14 +144,16 @@ class MessageHandler:
 
         :param packet: Das weiterzuleitende Paket (Kann Routing und Message sein)
         """
-
         if self.isTTLpositive(packet):
             packet.header.ttl -= 1
-            packed_message : bytes = Serializer.pack_message(packet)
+
+            if packet.header.packet_type == self.FILE:
+                packed_message: bytes = Serializer.packFile(packet)
+            else:
+                packed_message: bytes = Serializer.pack_message(packet)
+
             self.socket_starter.send_forward(packed_message)
-
             logging.getLogger("ack").info(f"Paket {packet.header.message_id} wird weitergeleitet von {packet.header.source_ip} an {packet.header.dest_ip} (TTL: {packet.header.ttl})")
-
     def isTTLpositive(self, packet: Packet) -> bool:
         """
         Hilfsmethode die checkt, ob TTL unterschritten ist

@@ -109,7 +109,7 @@ class Assembler:
         packets = {}
         length = len(datei_bytes)
         name_length = len(file_name.encode('utf-8'))
-        first_chunk_size = 1299 - name_length #0 und 1 für Namen belegt
+        first_chunk_size = 1299 - name_length #1 Byte für FilenameLen reserviert
 
         #Erstes Chunk beinhaltet Filenamen
         packets[0] = (file_name, datei_bytes[:first_chunk_size])

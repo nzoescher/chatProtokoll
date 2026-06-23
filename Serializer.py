@@ -114,6 +114,7 @@ class Serializer:
         header_bytes = Serializer._pack_header(packet)
 
         kompletteMessage = b""
+        #message ist ein übergebens dict aus Serializer
         eintrag_map: dict = packet.message
         for eintrag in eintrag_map.values():
             ip =socket.inet_aton(eintrag.ip)
@@ -156,7 +157,7 @@ class Serializer:
         i = 0
         while i < len(payload_bytes):
 
-            #Prüfe, ob ich noch mind. 6 bytes übrig habe
+            #Prüfe, ob ich noch mind. 6 bytes übrig habe - Schutz vor kaputten einträgen
             if len(payload_bytes) - i < 6:
                 break
             #Entpacken der Infos
