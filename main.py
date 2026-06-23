@@ -22,7 +22,7 @@ def main():
     starter = SocketStarter(handler)
     handler.socket_starter = starter
 
-    dest_ip = "192.168.178.20"
+    dest_ip = "10.8.3.2"
     starter.send_own_node_at_start(dest_ip)
 
     print("Befehle: 'bye' zum Beenden, 'file <pfad> <ziel-ip>' zum Senden einer Datei, 'list' um Teilnehmer auszugeben")

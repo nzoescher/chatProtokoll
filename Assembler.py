@@ -23,16 +23,18 @@ class Assembler:
         encoded_message = text.encode('utf-8')
         length = len(encoded_message)
 
+        #Paketnummer
         index = 0
         for i in range(0, length, 1300):
-            chunk = encoded_message[i:i+1300].decode('utf-8')
+            chunk = encoded_message[i:i+1300].decode('utf-8') #Python exklusiv!!!!!
             packets[index] = chunk
             index += 1
 
         return packets
 
     @staticmethod
-    def uniteMessages(packet : Packet.Packet)-> str | None:
+
+    def uniteMessages(packet: Packet) -> str | None:
         """
         Fügt einzelne Pakete zu einer gesamten Nachricht zusammen
 
@@ -41,25 +43,31 @@ class Assembler:
         :return: Die ursprüngliche Nachricht oder None, falls Nachricht noch nicht komplett
                 zusammengefügt wurde
         """
+        key = (packet.header.source_ip, packet.header.message_id)
 
-        if packet.header.message_id not in Assembler.storage: #message_id -> packageNumber -> Text
-            Assembler.storage[packet.header.message_id] = {}
+        if key not in Assembler.storage:
+            Assembler.storage[key] = {}
 
-        Assembler.storage[packet.header.message_id][packet.header.packet_number] = packet
+        Assembler.storage[key][packet.header.packet_number] = packet
 
-        if len(Assembler.storage[packet.header.message_id]) == packet.header.packet_count:
-            fertigerString : str = ""
+        #Nur falls alle Chunks angekommen sind
+        if len(Assembler.storage[key]) == packet.header.packet_count:
+            fertigerString: str = ""
 
-            for key in sorted(Assembler.storage[packet.header.message_id]):
-                 fertigerString += Assembler.storage[packet.header.message_id][key].message
+            #Sortiert Packetnummern aufsteigender größe
+            for k in sorted(Assembler.storage[key]):
+                #liest die Nachricht von Packet aus und konkateniert sie mit dem fertigen string
+                fertigerString += Assembler.storage[key][k].message
 
-            del Assembler.storage[packet.header.message_id]
+            del Assembler.storage[key]
+            logging.getLogger("ack").info(f" Nachricht von {packet.header.source_ip} mit MessageId {packet.header.message_id}"
+                                          f"wurde erfolgreiche zusammengebaut")
             return fertigerString
 
         return None
 
     @staticmethod
-    def uniteFile(packet : Packet.Packet)-> tuple[str , bytes] | None:
+    def uniteFile(packet : Packet)-> tuple[str , bytes] | None:
         """
         Fügt einzelne Pakete zu einer gesamten File zusammen
 
@@ -68,24 +76,23 @@ class Assembler:
         :return: Die ursprüngliche File oder None, falls File noch nicht komplett
                 zusammengefügt wurde
         """
-        if packet.header.message_id not in Assembler.storage: #message_id -> packageNumber -> Text
-            Assembler.storage[packet.header.message_id] = {}
+        key = (packet.header.source_ip, packet.header.message_id)
 
-        Assembler.storage[packet.header.message_id][packet.header.packet_number] = packet
-        logging.getLogger("ack").debug(f"Storage size: {len(Assembler.storage[packet.header.message_id])}, packet_count: {packet.header.packet_count}")
-        logging.getLogger("ack").debug(f"Chunk {packet.header.packet_number} gespeichert, Storage keys: {list(Assembler.storage[packet.header.message_id].keys())[:5]}")
+        if key not in Assembler.storage:
+            Assembler.storage[key] = {}
 
-        if len(Assembler.storage[packet.header.message_id]) == packet.header.packet_count:
-            fertigeDatei : bytes = b""
-            dateiname, _ = Assembler.storage[packet.header.message_id][0].message
+        Assembler.storage[key][packet.header.packet_number] = packet
 
-            for key in sorted(Assembler.storage[packet.header.message_id]):
-                _, daten = Assembler.storage[packet.header.message_id][key].message
+        if len(Assembler.storage[key]) == packet.header.packet_count:
+            fertigeDatei: bytes = b""
+            dateiname, _ = Assembler.storage[key][0].message
+
+            for k in sorted(Assembler.storage[key]):
+                _, daten = Assembler.storage[key][k].message
                 fertigeDatei += daten
 
-            del Assembler.storage[packet.header.message_id]
-            logging.getLogger("ack").info(f"Datei '{dateiname}' vollständig assembliert ({len(fertigeDatei)} Bytes)")
-            return (dateiname, fertigeDatei)
+            del Assembler.storage[key]
+            return dateiname, fertigeDatei
 
         return None
 
@@ -102,11 +109,13 @@ class Assembler:
         packets = {}
         length = len(datei_bytes)
         name_length = len(file_name.encode('utf-8'))
-        first_chunk_size = 1299 - name_length
+        first_chunk_size = 1299 - name_length #0 und 1 für Namen belegt
 
+        #Erstes Chunk beinhaltet Filenamen
         packets[0] = (file_name, datei_bytes[:first_chunk_size])
-        index = 1
 
+        #Weitere Chunks
+        index = 1
         for i in range(first_chunk_size, length, 1300):
             chunk = datei_bytes[i:i+1300]
             packets[index] = (None, chunk)

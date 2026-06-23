@@ -11,9 +11,9 @@ class RoutingTabelle:
 
     def __init__(self):
         self.baseDaten = RoutingEintrag(
-            identität="Headmaster",
-            ip= "10.8.3.4",
-            next_hop= "10.8.3.4",
+            identität="h",
+            ip= "10.8.3.3",
+            next_hop= "10.8.3.3",
             hop=0,
             last_seen=int(time.time()),
         )
