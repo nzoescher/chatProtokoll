@@ -11,14 +11,15 @@ class RoutingTabelle:
 
     def __init__(self):
         self.baseDaten = RoutingEintrag(
-            identität="h",
-            ip= "10.8.3.3",
-            next_hop= "10.8.3.3",
+            identität="Laptop",
+            ip= "10.8.3.5",
+            next_hop= "10.8.3.5",
             hop=0,
             last_seen=int(time.time()),
         )
         self.eigeneTabelle = dict()
         self.eigeneTabelle[self.baseDaten.ip] = self.baseDaten
+        self.blacklist = {}
 
     @staticmethod
     def getInstance():
@@ -41,11 +42,18 @@ class RoutingTabelle:
 
         for nachbar_eintrag in nachbar_tabelle.values():
 
+            #Überprüfen, ob in Blacklist
+            if nachbar_eintrag.ip in self.blacklist:
+                if int(time.time()) - self.blacklist[nachbar_eintrag.ip] < 30:
+                    continue
+                else:
+                    del self.blacklist[nachbar_eintrag.ip]
+
             #Check, ob eigene IP ist
             if nachbar_eintrag.ip == self.baseDaten.ip:
                 continue
 
-            #Überprüfen, ob TTL überschritten ist
+            #Überprüfen, ob hops überschritten ist
             if nachbar_eintrag.hop > 16:
                 continue
 
@@ -102,6 +110,7 @@ class RoutingTabelle:
 
         if eintrag in self.eigeneTabelle:
             del self.eigeneTabelle[eintrag]
+            self.blacklist[eintrag] = int(time.time())
 
     def isNextHop(self, eintrag: RoutingEintrag):
         """
