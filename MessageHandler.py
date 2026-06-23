@@ -21,7 +21,7 @@ class MessageHandler:
     MSG = 0x03
     ACK = 0x04
     BYE = 0x7F
-    sourceIP = "192.168.178.20"
+    sourceIP = "10.8.3.4"
 
     def __init__(self):
         self.socket_starter = None
@@ -34,6 +34,7 @@ class MessageHandler:
 
         :param packet: Das eingehende MessagePacket
         """
+        print(f"Paket empfangen: type={packet.header.packet_type}, dest={packet.header.dest_ip}")
         if self.check_if_destination_is_me(packet):
             match packet.header.packet_type:
                 case self.MSG:
@@ -65,7 +66,8 @@ class MessageHandler:
 
         :param packet: Paket dessen Text auszulesen ist
         """
-        self.sendAck(packet.header.source_ip)
+        print("handleText aufgerufen")
+        self.sendAck(packet)
         text = Assembler.uniteMessages(packet)
 
         routingTabelle = RoutingTabelle.getInstance()
@@ -82,7 +84,7 @@ class MessageHandler:
 
         :param packet: Paket dessen, Inhalt zu speichern ist.
         """
-        self.sendAck(packet.header.source_ip)
+        self.sendAck(packet)
         logging.debug(f"FILE Chunk empfangen: {packet.header.packet_number}/{packet.header.packet_count}")
         result = Assembler.uniteFile(packet)
 
@@ -99,6 +101,7 @@ class MessageHandler:
 
         :param packet: Paket, dass Ack und referenziertes Paket enthält
         """
+        logging.getLogger("ack").debug(f"ACK empfangen für Nachricht {packet.header.message_id}, Chunk {packet.header.packet_number}")
         AckManager.confirm_ack(packet)
 
     def handleRoutingUpdate(self, packet: Packet) -> None:
@@ -227,22 +230,21 @@ class MessageHandler:
         MessageHandler.message_id_counter += 1
         logging.info(f"Datei '{file_name}' wird gesendet an {dest_ip} ({len(messages)} Chunks)")
 
-    def sendAck(self, dest_ip: str):
+    def sendAck(self, packet: Packet) -> None:
         """
-        Sendet Ack an IP
+        Sendet Ack an den Absender des empfangenen Pakets
 
-        :param dest_ip: Ip des Empfängers
+        :param packet: Das empfangene Paket das bestätigt werden soll
         """
-
         antwort_packet = Packet(
             header=Header(
                 packet_type=0x04,
                 ttl=16,
-                message_id=MessageHandler.message_id_counter,
+                message_id=packet.header.message_id,
                 source_ip=self.sourceIP,
-                dest_ip=dest_ip,
+                dest_ip=packet.header.source_ip,
                 payloadLength=0,
-                packet_number=0,
+                packet_number=packet.header.packet_number,
                 packet_count=0
             ),
             message=""
@@ -250,8 +252,7 @@ class MessageHandler:
         packed_message = Serializer.pack_message(antwort_packet)
         self.socket_starter.send_forward(packed_message)
 
-        logging.debug(f"ACK gesendet an {dest_ip} für Nachricht {MessageHandler.message_id_counter}")
-
+        logging.getLogger("ack").info(f"ACK gesendet an {packet.header.source_ip} für Nachricht {packet.header.message_id}, Chunk {packet.header.packet_number}")
     def sendRoutingTable(self, dest_ip: str):
         """
         Sendet eigene RoutingTabelle an IP

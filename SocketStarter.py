@@ -1,8 +1,6 @@
 import socket
 import threading
 import time
-
-from ChatWindow import ChatWindow
 from RoutingTabelle import RoutingTabelle
 from Serializer import Serializer
 import logging
@@ -77,7 +75,6 @@ class SocketStarter:
 
     def stop(self):
         self.running = False
-        ###
         self.sock_chat.close()
         self.sock_routing.close()
 
@@ -93,6 +90,7 @@ class SocketStarter:
             for nachbar in nachbarn:
                 self.handler.sendRoutingTable(nachbar)
 
+            routingTabelle.eigeneTabelle[routingTabelle.baseDaten.ip].last_seen = int(time.time())
             time.sleep(5)
 
 

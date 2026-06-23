@@ -12,8 +12,8 @@ class RoutingTabelle:
     def __init__(self):
         self.baseDaten = RoutingEintrag(
             identität="Headmaster",
-            ip= "192.168.178.20",
-            next_hop= "192.168.178.20",
+            ip= "10.8.3.4",
+            next_hop= "10.8.3.4",
             hop=0,
             last_seen=int(time.time()),
         )
@@ -62,6 +62,7 @@ class RoutingTabelle:
 
             ## Bekannte Route — prüfen, ob neuer Weg kürzer ist
             else:
+                self.eigeneTabelle[nachbar_eintrag.ip].last_seen = int(time.time())
                 if self.eigeneTabelle[nachbar_eintrag.ip].hop > nachbar_tabelle[nachbar_eintrag.ip].hop + 1:
                     self.eigeneTabelle[nachbar_eintrag.ip].hop = nachbar_eintrag.hop + 1
                     self.eigeneTabelle[nachbar_eintrag.ip].next_hop = von_nachbar_ip
