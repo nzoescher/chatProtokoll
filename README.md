@@ -1,6 +1,6 @@
 # RN Chat Server
 
-Dezentrales Peer-to-Peer-Chat-System über **UDP/IPv4**, entwickelt im Rahmen des Rechnernetze-Praktikums an der **HAW Hamburg** (Praktikumsgruppe 1).
+Dezentrales Peer-to-Peer-Chat-System über **UDP/IPv4**, entwickelt im Rahmen des Rechnernetze-Praktikums an der **HAW Hamburg**.
 
 Jeder Knoten ist gleichzeitig Client und Router: Es gibt keinen zentralen Server. Nachrichten und Dateien werden über ein eigenes binäres Protokoll versendet und per Distance-Vector-Routing durch das Netz zum Ziel weitergeleitet.
 
