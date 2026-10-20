@@ -1,11 +1,11 @@
 from AckManager import AckManager
-from RoutingEintrag import RoutingEintrag
+from Routing.RoutingEintrag import RoutingEintrag
 from packet_full.Header import Header
 from packet_full.Packet import Packet
-from RoutingTabelle import RoutingTabelle
+from Routing.RoutingTabelle import RoutingTabelle
 from Serializer import Serializer
 from Assembler import Assembler
-from ChatWindow import ChatWindow
+from GUI.ChatWindow import ChatWindow
 import logging
 import time
 

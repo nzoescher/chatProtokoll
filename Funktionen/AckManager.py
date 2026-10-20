@@ -3,7 +3,7 @@ import time
 from packet_full.Packet import Packet
 import threading
 from Serializer import Serializer
-from SocketStarter import SocketStarter
+from Starter.SocketStarter import SocketStarter
 import logging
 
 

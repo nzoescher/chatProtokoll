@@ -1,8 +1,8 @@
 import socket
 import threading
 import time
-from RoutingTabelle import RoutingTabelle
-from Serializer import Serializer
+from Routing.RoutingTabelle import RoutingTabelle
+from Funktionen.Serializer import Serializer
 import logging
 
 

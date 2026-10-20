@@ -3,7 +3,7 @@ import struct
 import time
 from packet_full.Packet import Packet
 from packet_full.Header import Header
-from RoutingEintrag import RoutingEintrag
+from Routing.RoutingEintrag import RoutingEintrag
 
 
 class Serializer:

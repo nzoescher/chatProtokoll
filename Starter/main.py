@@ -1,6 +1,6 @@
-import MessageHandler
-from RoutingTabelle import RoutingTabelle
-from SocketStarter import SocketStarter
+from Funktionen import MessageHandler
+from Routing.RoutingTabelle import RoutingTabelle
+from Starter.SocketStarter import SocketStarter
 import os
 import logging
 
@@ -10,7 +10,7 @@ def main():
     routing_logger = logging.getLogger("routing")
     routing_logger.setLevel(logging.DEBUG)
     routing_logger.propagate = False
-    routing_logger.addHandler(logging.FileHandler("log/routing.log", mode="w", encoding="utf-8"))
+    routing_logger.addHandler(logging.FileHandler("../log/routing.log", mode="w", encoding="utf-8"))
 
     # ACK + Assembler Logger
     ack_logger = logging.getLogger("ack")

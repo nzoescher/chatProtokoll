@@ -1,8 +1,8 @@
 import time
 import unittest
 
-from RoutingEintrag import RoutingEintrag
-from RoutingTabelle import RoutingTabelle
+from Routing.RoutingEintrag import RoutingEintrag
+from Routing.RoutingTabelle import RoutingTabelle
 import socket
 
 
